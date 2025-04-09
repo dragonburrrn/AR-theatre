@@ -2,71 +2,100 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>AR-Театр кукол с анимацией</title>
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <title>AR-Театр кукол</title>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/aframe-animation-component@5.1.2/dist/aframe-animation-component.min.js"></script>
   <style>
-    body { margin: 0; overflow: hidden; background: #000; }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    #promo {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      z-index: 1000;
+      display: none;
+    }
   </style>
 </head>
 <body>
-  <a-scene
+  <!-- AR-сцена -->
+  <a-scene 
     embedded
     arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
-    renderer="antialias: true; logarithmicDepthBuffer: true;"
+    renderer="colorManagement: true; antialias: true;"
     vr-mode-ui="enabled: false"
+    loading-screen="enabled: false"
   >
-    <a-assets>
-      <a-asset-item id="doll-model" src="models/doll.glb"></a-asset-item>
-    </a-assets>
-
+    <!-- Маркер -->
     <a-marker preset="hiro">
       <a-entity
-        id="animated-doll"
-        gltf-model="#doll-model"
+        gltf-model="url(models/doll.glb)"
+        animation-mixer="clip: *; loop: repeat"
         scale="2 2 2"
         position="0 0.5 0"
-        animation-mixer="clip: *; loop: repeat; timeScale: 1"
       ></a-entity>
+      <a-text 
+        value="Промокод: THEATRE-123"
+        position="0 1.5 0"
+        color="white"
+        align="center"
+      ></a-text>
     </a-marker>
-    
     <a-entity camera></a-entity>
   </a-scene>
 
+  <div id="promo">Промокод: <span id="promo-code"></span></div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    // Решение для Android - явная инициализация после жеста пользователя
+    document.addEventListener('click', function initAR() {
+      // Удаляем обработчик после первого клика
+      document.removeEventListener('click', initAR);
+      
+      // Создаем сцену программно
       const scene = document.querySelector('a-scene');
       
-      // Явная загрузка анимаций после готовности сцены
-      scene.addEventListener('loaded', () => {
-        const doll = document.getElementById('animated-doll');
-        const model = doll.components['gltf-model'].model;
-        
-        if (model) {
-          // Ждем когда модель полностью загрузится
-          model.addEventListener('model-loaded', () => {
-            // Принудительный запуск анимации
-            const mixer = doll.components['animation-mixer'].mixer;
-            if (mixer && mixer._actions.length > 0) {
-              mixer._actions.forEach(action => {
-                action.play();
-                console.log('Анимация запущена:', action._clip.name);
-              });
-            } else {
-              console.warn('Анимации не найдены в модели');
-            }
-          });
+      // Для Android важно сначала получить доступ к камере
+      navigator.mediaDevices.getUserMedia({ 
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
+      }).then(stream => {
+        // После получения доступа активируем AR
+        scene.setAttribute('arjs', {
+          sourceType: 'webcam',
+          trackingMethod: 'best',
+          debugUIEnabled: false
+        });
         
-        // Для Android: запрашиваем камеру после жеста
-        document.body.addEventListener('click', () => {
-          navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => stream.getTracks().forEach(t => t.stop()))
-            .catch(console.error);
-        }, { once: true });
+        // Освобождаем поток камеры (AR.js будет использовать свой)
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Обработчики маркера
+        scene.addEventListener('markerFound', () => {
+          document.getElementById('promo').style.display = 'block';
+        });
+        
+        scene.addEventListener('markerLost', () => {
+          document.getElementById('promo').style.display = 'none';
+        });
+        
+      }).catch(err => {
+        console.error('Ошибка камеры:', err);
+        alert('Не удалось получить доступ к камере: ' + err.message);
       });
-    });
+    }, { once: true });
   </script>
 </body>
 </html>
