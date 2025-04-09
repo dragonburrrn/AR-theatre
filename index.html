@@ -8,88 +8,100 @@
   <style>
     body { 
       margin: 0; 
-      overflow: hidden; 
-      background: #000; /* Черный фон на время загрузки */
+      overflow: hidden;
+      background: #f0f0f0; /* Серый фон вместо черного */
     }
-    #ar-start {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      padding: 10px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      z-index: 1000;
-    }
-    #loading {
+    #ar-ui {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(0,0,0,0.8);
+      padding: 20px;
+      text-align: center;
+      z-index: 1000;
+    }
+    #ar-start {
+      padding: 12px 24px;
+      background: #4CAF50;
       color: white;
-      z-index: 999;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    #status {
+      margin-top: 10px;
+      color: white;
+      background: rgba(0,0,0,0.5);
+      padding: 8px;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-  <div id="loading">Инициализация AR...</div>
-  <button id="ar-start" style="display:none;">Активировать AR</button>
+  <div id="ar-ui">
+    <button id="ar-start">Активировать AR</button>
+    <div id="status">Ожидание активации...</div>
+  </div>
   
   <a-scene 
     embedded 
-    arjs="sourceType: none; debugUIEnabled: false;"
-    renderer="logarithmicDepthBuffer: true; antialias: true;"
-    loading-screen="enabled: false;"
+    arjs="sourceType: none; debugUIEnabled: true;"
+    renderer="colorManagement: true; antialias: true;"
+    vr-mode-ui="enabled: false"
   >
+    <!-- Используем простой куб для теста вместо модели -->
     <a-marker preset="hiro">
-      <a-entity
-        gltf-model="url(models/doll.glb)"
-        scale="2 2 2"
-      ></a-entity>
+      <a-box position="0 0.5 0" color="red" scale="0.5 0.5 0.5"></a-box>
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
 
   <script>
-    // Ждем полной загрузки A-Frame
-    window.addEventListener('DOMContentLoaded', () => {
-      const scene = document.querySelector('a-scene');
+    document.addEventListener('DOMContentLoaded', () => {
       const startButton = document.getElementById('ar-start');
-      const loading = document.getElementById('loading');
+      const statusEl = document.getElementById('status');
+      const scene = document.querySelector('a-scene');
       
-      // Показываем кнопку, когда сцена готова
+      // Для отладки - выводим события сцены
       scene.addEventListener('loaded', () => {
-        loading.style.display = 'none';
-        startButton.style.display = 'block';
+        console.log('Сцена загружена');
+        statusEl.textContent = "Готово к работе. Наведите на маркер Hiro";
+      });
+      
+      scene.addEventListener('markerFound', () => {
+        console.log('Маркер найден');
+        statusEl.textContent = "Маркер распознан!";
+      });
+      
+      scene.addEventListener('markerLost', () => {
+        statusEl.textContent = "Маркер потерян";
       });
 
-      // Обработчик кнопки активации AR
+      // Активация камеры
       startButton.addEventListener('click', async () => {
         try {
-          if (!navigator.mediaDevices) {
-            throw new Error("Ваш браузер не поддерживает камеру");
-          }
+          statusEl.textContent = "Запрашиваем доступ к камере...";
           
           const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
+            video: {
               facingMode: 'environment',
               width: { ideal: 1280 },
               height: { ideal: 720 }
             }
           });
           
+          // Освобождаем камеру (AR.js будет использовать ее самостоятельно)
           stream.getTracks().forEach(track => track.stop());
+          
+          // Активируем AR
           scene.setAttribute('arjs', 'sourceType: webcam;');
           startButton.style.display = 'none';
+          statusEl.textContent = "AR активирован. Наведите на маркер Hiro";
           
         } catch (err) {
-          alert("Ошибка: " + err.message);
-          console.error(err);
+          console.error('Ошибка камеры:', err);
+          statusEl.textContent = `Ошибка: ${err.message}`;
+          startButton.textContent = "Попробовать снова";
         }
       });
     });
