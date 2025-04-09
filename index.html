@@ -9,101 +9,58 @@
     body { 
       margin: 0; 
       overflow: hidden;
-      background: #f0f0f0; /* Серый фон вместо черного */
     }
-    #ar-ui {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      padding: 20px;
-      text-align: center;
-      z-index: 1000;
-    }
-    #ar-start {
-      padding: 12px 24px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-    }
-    #status {
-      margin-top: 10px;
-      color: white;
-      background: rgba(0,0,0,0.5);
-      padding: 8px;
-      border-radius: 4px;
+    /* Скрываем все элементы интерфейса A-Frame */
+    .a-enter-vr-button, 
+    .a-orientation-modal,
+    .a-loader-title,
+    .a-loader-progress {
+      display: none !important;
     }
   </style>
 </head>
 <body>
-  <div id="ar-ui">
-    <button id="ar-start">Активировать AR</button>
-    <div id="status">Ожидание активации...</div>
-  </div>
-  
   <a-scene 
-    embedded 
-    arjs="sourceType: none; debugUIEnabled: true;"
-    renderer="colorManagement: true; antialias: true;"
+    embedded
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+    renderer="antialias: true; logarithmicDepthBuffer: true;"
     vr-mode-ui="enabled: false"
+    loading-screen="enabled: false"
   >
-    <!-- Используем простой куб для теста вместо модели -->
+    <!-- Маркер Hiro -->
     <a-marker preset="hiro">
-      <a-box position="0 0.5 0" color="red" scale="0.5 0.5 0.5"></a-box>
+      <a-entity
+        gltf-model="url(models/doll.glb)"
+        scale="2 2 2"
+        animation-mixer="clip: *; loop: repeat"
+      ></a-entity>
     </a-marker>
+    
+    <!-- Камера -->
     <a-entity camera></a-entity>
   </a-scene>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const startButton = document.getElementById('ar-start');
-      const statusEl = document.getElementById('status');
-      const scene = document.querySelector('a-scene');
-      
-      // Для отладки - выводим события сцены
-      scene.addEventListener('loaded', () => {
-        console.log('Сцена загружена');
-        statusEl.textContent = "Готово к работе. Наведите на маркер Hiro";
-      });
-      
-      scene.addEventListener('markerFound', () => {
-        console.log('Маркер найден');
-        statusEl.textContent = "Маркер распознан!";
-      });
-      
-      scene.addEventListener('markerLost', () => {
-        statusEl.textContent = "Маркер потерян";
-      });
-
-      // Активация камеры
-      startButton.addEventListener('click', async () => {
-        try {
-          statusEl.textContent = "Запрашиваем доступ к камере...";
-          
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: {
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }
-          });
-          
-          // Освобождаем камеру (AR.js будет использовать ее самостоятельно)
-          stream.getTracks().forEach(track => track.stop());
-          
-          // Активируем AR
-          scene.setAttribute('arjs', 'sourceType: webcam;');
-          startButton.style.display = 'none';
-          statusEl.textContent = "AR активирован. Наведите на маркер Hiro";
-          
-        } catch (err) {
-          console.error('Ошибка камеры:', err);
-          statusEl.textContent = `Ошибка: ${err.message}`;
-          startButton.textContent = "Попробовать снова";
+    // Автоматический запрос камеры при загрузке
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Проверяем поддержку API
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("Ваш браузер не поддерживает камеру");
         }
-      });
+        
+        // Запрашиваем камеру (без уведомлений)
+        await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          }
+        });
+        
+      } catch (err) {
+        console.error("Ошибка камеры:", err);
+      }
     });
   </script>
 </body>
