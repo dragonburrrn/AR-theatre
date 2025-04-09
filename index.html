@@ -6,8 +6,9 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <style>
-    body { 
-      margin: 0; 
+    body {
+      margin: 0;
+      padding: 0;
       overflow: hidden;
       background-color: #000;
     }
@@ -28,9 +29,9 @@
 <body>
   <!-- AR-сцена -->
   <a-scene 
-    embedded 
-    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-    renderer="logarithmicDepthBuffer: true; antialias: true;"
+    embedded
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false;"
+    renderer="colorManagement: true; antialias: true;"
     vr-mode-ui="enabled: false"
     loading-screen="enabled: false"
   >
@@ -38,51 +39,63 @@
     <a-marker preset="hiro">
       <a-entity
         gltf-model="url(models/doll.glb)"
-        animation-mixer="clip: dance; loop: repeat"
+        animation-mixer="clip: *; loop: repeat"
         scale="2 2 2"
+        position="0 0.5 0"
       ></a-entity>
       <a-text 
-        value="Промокод: THEATRE-123" 
-        position="0 1.5 0" 
-        color="black"
+        value="Промокод: THEATRE-123"
+        position="0 1.5 0"
+        color="white"
+        align="center"
       ></a-text>
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
-  
-  <!-- Блок с промокодом -->
+
   <div id="promo">Промокод: <span id="promo-code"></span></div>
 
   <script>
-    // Автоматический запуск AR
-    document.addEventListener('DOMContentLoaded', () => {
+    // Решение для Android - явная инициализация после жеста пользователя
+    document.addEventListener('click', function initAR() {
+      // Удаляем обработчик после первого клика
+      document.removeEventListener('click', initAR);
+      
+      // Создаем сцену программно
       const scene = document.querySelector('a-scene');
       
-      // Для Android: ждем полной загрузки сцены
-      scene.addEventListener('loaded', () => {
-        // Запрашиваем камеру после загрузки
-        navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        }).then(stream => {
-          stream.getTracks().forEach(track => track.stop());
-        }).catch(err => {
-          console.error("Camera error:", err);
+      // Для Android важно сначала получить доступ к камере
+      navigator.mediaDevices.getUserMedia({ 
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      }).then(stream => {
+        // После получения доступа активируем AR
+        scene.setAttribute('arjs', {
+          sourceType: 'webcam',
+          trackingMethod: 'best',
+          debugUIEnabled: false
         });
+        
+        // Освобождаем поток камеры (AR.js будет использовать свой)
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Обработчики маркера
+        scene.addEventListener('markerFound', () => {
+          document.getElementById('promo').style.display = 'block';
+        });
+        
+        scene.addEventListener('markerLost', () => {
+          document.getElementById('promo').style.display = 'none';
+        });
+        
+      }).catch(err => {
+        console.error('Ошибка камеры:', err);
+        alert('Не удалось получить доступ к камере: ' + err.message);
       });
-      
-      // Показываем промокод при обнаружении маркера
-      scene.addEventListener('markerFound', () => {
-        document.getElementById('promo').style.display = 'block';
-      });
-      
-      scene.addEventListener('markerLost', () => {
-        document.getElementById('promo').style.display = 'none';
-      });
-    });
+    }, { once: true });
   </script>
 </body>
 </html>
