@@ -46,7 +46,9 @@ function initialize()
 	camera = new THREE.Camera();
 	scene.add(camera);
 
-	enderer = new THREE.WebGLRenderer({
+	
+
+	renderer = new THREE.WebGLRenderer({
 
 antialias: true,
 
@@ -69,7 +71,6 @@ sortObjects: true
 	clock = new THREE.Clock();
 	deltaTime = 0;
 	totalTime = 0;
-	
 	////////////////////////////////////////////////////////////
 	// setup arToolkitSource
 	////////////////////////////////////////////////////////////
