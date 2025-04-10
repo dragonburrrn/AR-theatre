@@ -1,21 +1,34 @@
 <html>
   <head>
     <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-    <!-- Добавляем AR.js -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://unpkg.com/@c-frame/aframe-particle-system-component@1.2.x/dist/aframe-particle-system-component.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@fern-solutions/aframe-sky-background/dist/sky-background.umd.min.js"></script>
+    <script>
+      AFRAME.registerComponent('stabilizer', {
+        tick: function() {
+          if (!this.initialPos) this.initialPos = this.el.object3D.position.clone();
+          this.el.object3D.position.lerp(this.initialPos, 0.1);
+        }
+      });
+    </script>
   </head>
   <body>
-    <a-scene embedded arjs='detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
+    <a-scene 
+      embedded 
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false"
+      renderer="antialias: true; logarithmicDepthBuffer: true; precision: high"
+    >
+      <a-entity light="type: ambient; color: #FFF; intensity: 0.7"></a-entity>
+      <a-entity light="type: directional; color: #FFF; intensity: 0.5" position="-1 1 1"></a-entity>
 
-      <a-entity scale="1 1 1">
-        <a-entity gltf-model="assets/Анимация Малыша 2.gltf" scale="1 1 1"></a-entity>
+      <a-entity scale="0.2 0.2 0.2" stabilizer>
+        <a-entity 
+          gltf-model="assets/Анимация Малыша 2.gltf"
+          position="0 0 0"
+          animation="property: position; dur: 1000; easing: easeInOutQuad; loop: false; to: 0 0.1 0"
+        ></a-entity>
       </a-entity>
-      
-      <!-- Исправленное имя тега маркера -->
-      <a-marker-camera preset='hiro'></a-marker-camera>
+
+      <a-marker-camera preset="hiro"></a-marker-camera>
     </a-scene>
   </body>
 </html>
