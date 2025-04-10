@@ -46,13 +46,11 @@ function initialize()
 	camera = new THREE.Camera();
 	scene.add(camera);
 
-	
-
 	renderer = new THREE.WebGLRenderer({
 		antialias : true,
+		
 		alpha: true
 	});
-	
 	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
 	renderer.setSize( 640, 480 );
 	renderer.domElement.style.position = 'absolute'
@@ -63,6 +61,7 @@ function initialize()
 	clock = new THREE.Clock();
 	deltaTime = 0;
 	totalTime = 0;
+	
 	////////////////////////////////////////////////////////////
 	// setup arToolkitSource
 	////////////////////////////////////////////////////////////
