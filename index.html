@@ -1,16 +1,20 @@
 <html>
   <head>
     <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+    <!-- Добавляем AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://unpkg.com/@c-frame/aframe-particle-system-component@1.2.x/dist/aframe-particle-system-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.5.0/dist/aframe-extras.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@fern-solutions/aframe-sky-background/dist/sky-background.umd.min.js"></script>
   </head>
   <body>
-    <a-scene embedded arjs>
+    <a-scene embedded arjs='detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
 
-      <a-entity scale=".2 .2 .2 ">
-        <a-entity gltf-model="assets/Анимация Малыша 2.gltf" scale="1 1 1">
-    </a-entity>
+      <a-entity scale=".2 .2 .2">
+        <a-entity gltf-model="assets/Анимация Малыша 2.gltf" scale="1 1 1"></a-entity>
+      </a-entity>
+      
+      <!-- Исправленное имя тега маркера -->
       <a-marker-camera preset='hiro'></a-marker-camera>
     </a-scene>
   </body>
