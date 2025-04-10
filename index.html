@@ -47,10 +47,10 @@ function initialize()
 	scene.add(camera);
 
 	renderer = new THREE.WebGLRenderer({
-		antialias : true,
-		logarithmicDepthBuffer: true,
-		alpha: true
-	});
+    alpha: true,                // Сначала прозрачность
+    antialias: true,            // Затем сглаживание
+    logarithmicDepthBuffer: true // В конце буфер глубины
+});
 	renderer.setClearColor(0x000000, 0); 
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	renderer.domElement.style.position = 'absolute'
