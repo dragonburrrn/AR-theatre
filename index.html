@@ -18,11 +18,6 @@
 
 <body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
 
-<!-- 
-  Example created by Lee Stemkoski: https://github.com/stemkoski
-  Based on the AR.js library and examples created by Jerome Etienne: https://github.com/jeromeetienne/AR.js/
--->
-
 <script>
 
 var scene, camera, renderer, clock, deltaTime, totalTime;
@@ -40,8 +35,13 @@ function initialize()
 {
 	scene = new THREE.Scene();
 
-	let ambientLight = new THREE.AmbientLight( 0xcccccc, 1.0 );
+	let ambientLight = new THREE.AmbientLight( 0xffffff, 1.0 ); // Увеличим интенсивность света
 	scene.add( ambientLight );
+    
+    // Добавим направленный свет для лучшего отображения модели
+    let directionalLight = new THREE.DirectionalLight( 0xffffff, 0.8 );
+    directionalLight.position.set( 1, 1, 1 );
+    scene.add( directionalLight );
 				
 	camera = new THREE.Camera();
 	scene.add(camera);
@@ -95,7 +95,10 @@ function initialize()
 	// create atToolkitContext
 	arToolkitContext = new THREEx.ArToolkitContext({
 		cameraParametersUrl: 'data/camera_para.dat',
-		detectionMode: 'mono'
+		detectionMode: 'mono',
+        maxDetectionRate: 60, // Увеличим частоту детекции
+        canvasWidth: 640,     // Явно укажем размеры
+        canvasHeight: 480
 	});
 	
 	// copy projection matrix to camera when initialization complete
@@ -111,17 +114,11 @@ function initialize()
 	markerRoot1 = new THREE.Group();
 	scene.add(markerRoot1);
 	let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
-		type: 'pattern', patternUrl: "data/hiro.patt",
+		type: 'pattern', 
+        patternUrl: "data/hiro.patt",
+        changeMatrixMode: 'cameraTransformMatrix' // Используем более стабильный режим
 	})
 
-	let geometry1 = new THREE.PlaneBufferGeometry(1,1, 4,4);
-	let loader = new THREE.TextureLoader();
-	// let texture = loader.load( 'images/earth.jpg', render );
-	let material1 = new THREE.MeshBasicMaterial( { color: 0x0000ff, opacity: 0.5 } );
-	mesh1 = new THREE.Mesh( geometry1, material1 );
-	mesh1.rotation.x = -Math.PI/2;
-	markerRoot1.add( mesh1 );
-	
 	function onProgress(xhr) { console.log( (xhr.loaded / xhr.total * 100) + '% loaded' ); }
 	function onError(xhr) { console.log( 'An error happened' ); }
 	
@@ -129,6 +126,15 @@ function initialize()
 		.setPath( 'models/' )
 		.load( 'AR.mtl', function ( materials ) {
 			materials.preload();
+            
+            // Переопределяем материалы, чтобы убрать текстуру рыбы
+            for (let material of Object.values(materials.materials)) {
+                material.map = null;
+                material.color = new THREE.Color(0x00aa00); // Зеленый цвет вместо текстуры
+                material.specular = new THREE.Color(0x111111);
+                material.shininess = 30;
+            }
+            
 			new THREE.OBJLoader()
 				.setMaterials( materials )
 				.setPath( 'models/' )
@@ -136,7 +142,13 @@ function initialize()
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;
 					mesh0.position.y = 0.25;
-					mesh0.scale.set(1.0, 1.0, 1.0); // Увеличение в 4 раза (было 0.25)
+					mesh0.scale.set(1.0, 1.0, 1.0);
+                    
+                    // Добавим сглаживание для модели
+                    mesh0.geometry.computeVertexNormals();
+                    mesh0.castShadow = true;
+                    mesh0.receiveShadow = true;
+                    
 					markerRoot1.add(mesh0);
 				}, onProgress, onError );
 		});
