@@ -46,10 +46,19 @@ function initialize()
 	camera = new THREE.Camera();
 	scene.add(camera);
 
-	renderer = new THREE.WebGLRenderer({
-		antialias : true,
-		alpha: true
-	});
+	enderer = new THREE.WebGLRenderer({
+
+antialias: true,
+
+alpha: true,
+
+logarithmicDepthBuffer: true,
+
+colorManagement: true,
+
+sortObjects: true
+
+});
 	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
 	renderer.setSize( 640, 480 );
 	renderer.domElement.style.position = 'absolute'
