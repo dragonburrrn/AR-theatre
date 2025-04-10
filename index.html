@@ -49,18 +49,10 @@ function initialize()
 	
 
 	renderer = new THREE.WebGLRenderer({
-
-antialias: true,
-
-alpha: true,
-
-logarithmicDepthBuffer: true,
-
-colorManagement: true,
-
-sortObjects: true
-
-});
+		antialias : true,
+		alpha: true
+	});
+	
 	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
 	renderer.setSize( 640, 480 );
 	renderer.domElement.style.position = 'absolute'
@@ -140,7 +132,7 @@ sortObjects: true
 					mesh0 = group.children[0];
 					mesh0.material.side = THREE.DoubleSide;
 					mesh0.position.y = 0.25;
-					mesh0.scale.set(2.0, 2.0, 2.0); // Увеличение в 4 раза (было 0.25)
+					mesh0.scale.set(1.0, 1.0, 1.0); // Увеличение в 4 раза (было 0.25)
 					markerRoot1.add(mesh0);
 				}, onProgress, onError );
 		});
