@@ -1,88 +1,93 @@
-import { createClient } from '@supabase/supabase-js'
+// Импортируем Supabase правильно для Vercel
+const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_KEY
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Инициализация Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Настройка CORS
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST')
-  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
-    return res.status(200).end()
+    return res.status(200).end();
   }
 
   if (req.method === 'GET') {
-    // Генерация нового промокода
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-    let code, attempts = 0
-    
+    // Генерация промокода
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code;
+    let attempts = 0;
+
     do {
-      code = ''
+      code = '';
       for (let i = 0; i < 5; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length))
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      attempts++
-      
-      // Защита от бесконечного цикла
+      attempts++;
+
       if (attempts > 10) {
-        return res.status(500).json({ error: 'Failed to generate unique code' })
+        return res.status(500).json({ error: 'Не удалось сгенерировать уникальный код' });
       }
-      
-      // Проверка уникальности
-      const { data: existing } = await supabase
+
+      const { data: exists } = await supabase
         .from('promocodes')
         .select('code')
         .eq('code', code)
-        .single()
-        
-    } while (existing)
+        .single();
 
-    // Сохранение в Supabase
+      if (!exists) break;
+    } while (true);
+
+    // Сохраняем в Supabase
     const { data, error } = await supabase
       .from('promocodes')
-      .insert([{ 
+      .insert([{
         code,
-        device_id: req.query.device_id || null 
+        device_id: req.query.device_id || null,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       }])
-      .select()
-      
+      .select();
+
     if (error) {
-      return res.status(500).json({ error: error.message })
+      return res.status(500).json({ error: error.message });
     }
-    
-    return res.json({ code: data[0].code })
+
+    return res.json({ code: data[0].code });
   }
   else if (req.method === 'POST') {
-    // Проверка промокода театром
-    const { code } = req.body
-    
+    // Проверка промокода
+    const { code } = req.body;
+
     if (!code || code.length !== 5) {
-      return res.status(400).json({ valid: false, error: 'Invalid code format' })
+      return res.status(400).json({ valid: false, error: 'Неверный формат кода' });
     }
-    
-    // Поиск промокода
+
     const { data, error } = await supabase
       .from('promocodes')
       .select('*')
       .eq('code', code)
-      .single()
-      
+      .gte('expires_at', new Date().toISOString())
+      .single();
+
     if (error || !data) {
-      return res.json({ valid: false })
+      return res.json({ valid: false });
     }
-    
-    // Возвращаем результат проверки
+
     return res.json({
       valid: true,
       code: data.code,
       created_at: data.created_at,
+      expires_at: data.expires_at,
       is_used: data.is_used
-    })
+    });
   }
   else {
-    res.setHeader('Allow', ['GET', 'POST'])
-    res.status(405).json({ error: 'Method not allowed' })
+    res.setHeader('Allow', ['GET', 'POST', 'OPTIONS']);
+    res.status(405).json({ error: 'Метод не разрешен' });
   }
-}
+};
