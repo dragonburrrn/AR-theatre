@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<head>
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<title>AR Promo Code Generator</title>
+	<!-- Three.js и AR.js библиотеки -->
+	<script src='js/three.js'></script>
+	<script src='js/OBJLoader.js'></script>
+	<script src='js/MTLLoader.js'></script>
+	<script src="jsartoolkit5/artoolkit.min.js"></script>
+	<script src="jsartoolkit5/artoolkit.api.js"></script>
+	<script src="threex/threex-artoolkitsource.js"></script>
+	<script src="threex/threex-artoolkitcontext.js"></script>
+	<script src="threex/threex-arbasecontrols.js"></script>
+	<script src="threex/threex-armarkercontrols.js"></script>
+	
+	<style>
+	  body {
+		margin: 0;
+		overflow: hidden;
+		font-family: Monospace;
+	  }
+	  #promo-container {
+		position: absolute;
+		bottom: 20px;
+		left: 0;
+		width: 100%;
+		text-align: center;
+		color: white;
+		font-size: 24px;
+		z-index: 1000;
+		text-shadow: 0 0 5px black;
+	  }
+	  #promo-code {
+		font-weight: bold;
+		color: #ffcc00;
+		background: rgba(0,0,0,0.7);
+		padding: 5px 15px;
+		border-radius: 10px;
+	  }
+	  .arjs-loader {
+		height: 100%;
+		width: 100%;
+		position: absolute;
+		top: 0;
+		left: 0;
+		background-color: rgba(0, 0, 0, 0.8);
+		z-index: 9999;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		color: white;
+	  }
+	</style>
+  </head>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+
+	<div class="arjs-loader">
+		<div>Loading AR experience...</div>
+	  </div>
+	
+	  <!-- Контейнер для промокода -->
+	  <div id="promo-container">
+		Your promo code: <span id="promo-code">------</span>
+	  </div>
+
+<!-- 
+  Example created by Lee Stemkoski: https://github.com/stemkoski
+  Based on the AR.js library and examples created by Jerome Etienne: https://github.com/jeromeetienne/AR.js/
+-->
+
+<script>
+
+// Глобальные переменные
+let currentPromoCode = '';
+    let deviceId = localStorage.getItem('deviceId');
+    
+    // Генерация ID устройства если нет
+    if (!deviceId) {
+      deviceId = Math.random().toString(36).substring(2) + 
+                 Math.random().toString(36).substring(2);
+      localStorage.setItem('deviceId', deviceId);
+    }
+
+    // Функция генерации промокода
+    async function generatePromoCode() {
+      try {
+        const response = await fetch(`/api/promocodes?device_id=${deviceId}`);
+        const data = await response.json();
+        
+        if (data.code) {
+          currentPromoCode = data.code;
+          document.getElementById('promo-code').textContent = data.code;
+          
+          // Сохраняем в localStorage
+          localStorage.setItem('lastPromoCode', data.code);
+        } else {
+          console.error('Failed to generate promo code');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // Проверяем есть ли сохраненный промокод
+    window.addEventListener('load', () => {
+      const savedCode = localStorage.getItem('lastPromoCode');
+      if (savedCode) {
+        currentPromoCode = savedCode;
+        document.getElementById('promo-code').textContent = savedCode;
+      } else {
+        generatePromoCode();
+      }
+    });
+
+    // Копирование промокода по клику
+    document.getElementById('promo-code').addEventListener('click', () => {
+      if (currentPromoCode) {
+        navigator.clipboard.writeText(currentPromoCode)
+          .then(() => {
+            const elem = document.getElementById('promo-code');
+            elem.textContent = 'Copied!';
+            setTimeout(() => {
+              elem.textContent = currentPromoCode;
+            }, 2000);
+          });
+      }
+    });
+
+var scene, camera, renderer, clock, deltaTime, totalTime;
+
+var arToolkitSource, arToolkitContext;
+
+var markerRoot1;
+
+var mesh1;
+
+initialize();
+animate();
+
+function initialize()
+{
+	scene = new THREE.Scene();
+
+	let ambientLight = new THREE.AmbientLight( 0xcccccc, 1.0 );
+	scene.add( ambientLight );
+				
+	camera = new THREE.Camera();
+	scene.add(camera);
+
+	renderer = new THREE.WebGLRenderer({
+    alpha: true,                // Сначала прозрачность
+    antialias: true,            // Затем сглаживание
+
+});
+	renderer.setClearColor(0x000000, 0); 
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	clock = new THREE.Clock();
+	deltaTime = 0;
+	totalTime = 0;
+	
+	////////////////////////////////////////////////////////////
+	// setup arToolkitSource
+	////////////////////////////////////////////////////////////
+
+	arToolkitSource = new THREEx.ArToolkitSource({
+		sourceType : 'webcam',
+	});
+
+	function onResize()
+	{
+		arToolkitSource.onResize()	
+		arToolkitSource.copySizeTo(renderer.domElement)	
+		if ( arToolkitContext.arController !== null )
+		{
+			arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+		}	
+	}
+
+	arToolkitSource.init(function onReady(){
+		onResize()
+	});
+	
+	// handle resize event
+	window.addEventListener('resize', function(){
+		onResize()
+	});
+	
+	////////////////////////////////////////////////////////////
+	// setup arToolkitContext
+	////////////////////////////////////////////////////////////	
+
+	// create atToolkitContext
+	arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: 'data/camera_para.dat',
+		detectionMode: 'mono'
+	});
+	
+	// copy projection matrix to camera when initialization complete
+	arToolkitContext.init( function onCompleted(){
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	});
+
+	////////////////////////////////////////////////////////////
+	// setup markerRoots
+	////////////////////////////////////////////////////////////
+
+	// build markerControls
+	markerRoot1 = new THREE.Group();
+	scene.add(markerRoot1);
+	let markerControls1 = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+		type: 'pattern', patternUrl: "data/hiro.patt",
+	})
+
+	// Удален блок создания синей подложки (PlaneBufferGeometry)
+	
+	function onProgress(xhr) { console.log( (xhr.loaded / xhr.total * 100) + '% loaded' ); }
+	function onError(xhr) { console.log( 'An error happened' ); }
+	
+	new THREE.MTLLoader()
+		.setPath( 'models/' )
+		.load( 'AR.mtl', function ( materials ) {
+			materials.preload();
+			new THREE.OBJLoader()
+				.setMaterials( materials )
+				.setPath( 'models/' )
+				.load( 'AR.obj', function ( group ) {
+					mesh0 = group.children[0];
+					mesh0.material.side = THREE.DoubleSide;
+					mesh0.position.y = 0.25;
+					mesh0.scale.set(2.0, 2.0, 2.0) // Увеличение в 4 раза (было 0.25)
+					markerRoot1.add(mesh0);
+				}, onProgress, onError );
+		});
+}
+
+
+function update()
+{
+	// update artoolkit on every frame
+	if ( arToolkitSource.ready !== false )
+		arToolkitContext.update( arToolkitSource.domElement );
+}
+
+
+function render()
+{
+	renderer.render( scene, camera );
+}
+
+
+function animate()
+{
+	requestAnimationFrame(animate);
+	deltaTime = clock.getDelta();
+	totalTime += deltaTime;
+	update();
+	render();
+}
+
+</script>
+
+</body>
+</html>
